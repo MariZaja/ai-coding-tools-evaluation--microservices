@@ -1,0 +1,97 @@
+x-db-env: &db-env
+  DB_USER: ${DB_USER}
+  DB_PASS: ${DB_PASS}
+  DB_NAME: ${DB_NAME}
+  DB_HOST: ${DB_HOST}
+  DB_TYPE: ${DB_TYPE}
+
+x-app-env: &app-env
+  APP_BIND_HOST: ${APP_BIND_HOST}
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: ./apps/frontend/Dockerfile
+    environment:
+      REACT_APP_PORT: ${FRONTEND_PORT}
+      REACT_APP_GATEWAY_PORT: ${GATEWAY_PORT}
+    ports:
+      - "${FRONTEND_PORT:-3000}:${FRONTEND_PORT:-3000}"
+    depends_on:
+      - db
+      - species
+      - users
+      - gardens
+      - gar-api-gateway
+  gar-api-gateway:
+    build:
+      context: .
+      dockerfile: ./apps/gar-api-gateway/Dockerfile
+    environment:
+      GATEWAY_PORT: ${GATEWAY_PORT}
+      USERS_PORT: ${USERS_PORT}
+      USERS_HOST: ${USERS_HOST}
+      SPECIES_PORT: ${SPECIES_PORT}
+      SPECIES_HOST: ${SPECIES_HOST}
+      GARDENS_PORT: ${GARDENS_PORT}
+      GARDENS_HOST: ${GARDENS_HOST}
+      FRONTEND_PORT: ${FRONTEND_PORT}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+      GOOGLE_REFRESH_TOKEN: ${GOOGLE_REFRESH_TOKEN}
+    ports:
+      - "${GATEWAY_PORT:-3004}:${GATEWAY_PORT:-3004}"
+    depends_on:
+      - db
+      - species
+      - users
+  users:
+    build:
+      context: .
+      dockerfile: ./apps/users/Dockerfile
+    environment:
+      <<: [*db-env, *app-env]
+      USERS_PORT: ${USERS_PORT}
+    expose:
+      - "3001"
+    depends_on:
+      - db
+  species:
+    build:
+      context: .
+      dockerfile: ./apps/species/Dockerfile
+    environment:
+      <<: [*db-env, *app-env]
+      SPECIES_PORT: ${SPECIES_PORT}
+    expose:
+      - "3002"
+    depends_on:
+      - db
+  gardens:
+    build:
+      context: .
+      dockerfile: ./apps/gardens/Dockerfile
+    environment:
+      <<: [*db-env, *app-env]
+      GARDENS_PORT: ${GARDENS_PORT}
+    expose:
+      - "3003"
+    depends_on:
+      - db
+  db:
+    build:
+      context: ./apps/db
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

@@ -1,0 +1,6 @@
+# Domyślnie ustaw LF dla tekstu
+* text=auto eol=lf
+
+# Pliki binarne
+*.jpg binary
+*.png binary
